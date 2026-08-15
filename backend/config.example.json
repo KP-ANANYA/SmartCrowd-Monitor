@@ -1,0 +1,46 @@
+{
+    "camera_settings": {
+        "camera_index": 0,
+        "width": 640,
+        "height": 360,
+        "fps": 30
+    },
+    "detection_settings": {
+        "model_path": "yolov8s.pt",
+        "confidence_threshold": 0.5,
+        "upload_confidence_threshold": 0.15,
+        "upload_imgsz": 960,
+        "upload_tile_detection": true,
+        "upload_tile_overlap": 0.2,
+        "upload_min_box_area": 80,
+        "imgsz": 416,
+        "high_accuracy": false,
+        "simple_mode": false,
+        "grid_size": {
+            "rows": 3,
+            "cols": 3
+        }
+    },
+    "zone_thresholds": {
+        "low": 0,
+        "medium": 1,
+        "high": 2
+    },
+    "server_settings": {
+        "host": "0.0.0.0",
+        "port": 5000,
+        "debug": true
+    },
+    "alert_settings": {
+        "enable_sound": true,
+        "enable_email": false,
+        "crowd_threshold": 2,
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "sender_email": "your-email@gmail.com",
+        "sender_app_password": "your-app-password",
+        "log_file": "alerts_log.txt",
+        "beep_frequency": 1000,
+        "beep_duration": 500
+    }
+}

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Zone Editor - SmartCrowd Monitor</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 2rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+  p.hint { color: #94a3b8; margin-top: 0; margin-bottom: 1rem; }
+  .wrap { display: flex; gap: 1.5rem; align-items: flex-start; }
+  #canvasBox { position: relative; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+  canvas { display: block; cursor: crosshair; }
+  .panel { width: 260px; background: #1e293b; border-radius: 10px; padding: 1rem; }
+  .panel h3 { margin-top: 0; font-size: 1rem; }
+  #zoneList { list-style: none; padding: 0; margin: 0 0 1rem 0; max-height: 260px; overflow-y: auto; }
+  #zoneList li { padding: 0.4rem 0.5rem; border-radius: 6px; margin-bottom: 0.3rem; background: #0f172a; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+  button { background: #6366f1; color: white; border: none; border-radius: 6px; padding: 0.55rem 0.9rem; cursor: pointer; font-size: 0.85rem; margin-bottom: 0.5rem; width: 100%; }
+  button.secondary { background: #334155; }
+  button.danger { background: #ef4444; padding: 0.2rem 0.5rem; width: auto; margin: 0; }
+  input[type=text] { width: 100%; padding: 0.4rem; margin-bottom: 0.5rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; box-sizing: border-box; }
+</style>
+</head>
+<body>
+  <h1>Draw Crowd Zones</h1>
+  <p class="hint">Click to place polygon points. Double-click (or "Finish Zone") to close the shape. Draw as many zones as you need, then Save.</p>
+  <div class="wrap">
+    <div id="canvasBox">
+      <canvas id="frameCanvas"></canvas>
+    </div>
+    <div class="panel">
+      <h3>Current zone</h3>
+      <input type="text" id="zoneName" placeholder="Zone name e.g. Entrance">
+      <button id="finishBtn">Finish Zone</button>
+      <button class="secondary" id="undoBtn">Undo Last Point</button>
+      <h3>Saved zones (<span id="zoneCount">0</span>)</h3>
+      <ul id="zoneList"></ul>
+      <button id="saveBtn">Save All Zones</button>
+      <button class="secondary" id="clearBtn">Clear All</button>
+      <div id="status" style="font-size:0.8rem; color:#94a3b8; margin-top:0.5rem;"></div>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById('frameCanvas');
+const ctx = canvas.getContext('2d');
+const img = new Image();
+let frameW = 0, frameH = 0;
+let zones = [];          // {id, name, points:[[x,y],...]}
+let currentPoints = [];
+let zoneCounter = 1;
+
+// Load a live snapshot from the running camera/video feed as the drawing background.
+img.onload = () => {
+  frameW = img.naturalWidth; frameH = img.naturalHeight;
+  canvas.width = frameW; canvas.height = frameH;
+  redraw();
+};
+img.src = '/zone_snapshot?ts=' + Date.now();
+
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+  // saved zones
+  zones.forEach(z => drawPolygon(z.points, '#22c55e', z.name));
+  // in-progress zone
+  if (currentPoints.length) drawPolygon(currentPoints, '#f59e0b', null, true);
+}
+
+function drawPolygon(points, color, label, openPath) {
+  if (!points.length) return;
+  ctx.strokeStyle = color; ctx.fillStyle = color + '33'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  points.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
+  if (!openPath) { ctx.closePath(); ctx.fill(); }
+  ctx.stroke();
+  points.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, 7); ctx.fillStyle = color; ctx.fill(); });
+  if (label) {
+    const cx = points.reduce((s,p)=>s+p[0],0)/points.length;
+    const cy = points.reduce((s,p)=>s+p[1],0)/points.length;
+    ctx.fillStyle = '#fff'; ctx.font = '14px sans-serif';
+    ctx.fillText(label, cx - 20, cy);
+  }
+}
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  currentPoints.push([Math.round(x), Math.round(y)]);
+  redraw();
+});
+
+document.getElementById('undoBtn').onclick = () => { currentPoints.pop(); redraw(); };
+
+document.getElementById('finishBtn').onclick = () => {
+  if (currentPoints.length < 3) { setStatus('Need at least 3 points to close a zone.'); return; }
+  const name = document.getElementById('zoneName').value.trim() || `Zone ${zoneCounter}`;
+  zones.push({ id: `Z${zoneCounter}`, name, points: currentPoints });
+  zoneCounter++;
+  currentPoints = [];
+  document.getElementById('zoneName').value = '';
+  refreshZoneList();
+  redraw();
+};
+
+document.getElementById('clearBtn').onclick = () => {
+  zones = []; currentPoints = []; zoneCounter = 1;
+  refreshZoneList(); redraw();
+};
+
+function refreshZoneList() {
+  const ul = document.getElementById('zoneList');
+  ul.innerHTML = '';
+  zones.forEach((z, idx) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${z.name}</span>`;
+    const btn = document.createElement('button');
+    btn.className = 'danger'; btn.textContent = '✕';
+    btn.onclick = () => { zones.splice(idx, 1); refreshZoneList(); redraw(); };
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+  document.getElementById('zoneCount').textContent = zones.length;
+}
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+document.getElementById('saveBtn').onclick = async () => {
+  if (!zones.length) { setStatus('Draw at least one zone first.'); return; }
+  setStatus('Saving...');
+  try {
+    const res = await fetch('/api/save_zones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frame_width: frameW, frame_height: frameH, zones })
+    });
+    const data = await res.json();
+    setStatus(res.ok ? '✅ Saved. Live detection will use these zones now.' : '❌ ' + (data.error || 'Save failed'));
+  } catch (err) {
+    setStatus('❌ ' + err.message);
+  }
+};
+</script>
+</body>
+</html>
