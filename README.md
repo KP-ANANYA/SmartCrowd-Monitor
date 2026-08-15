@@ -17,15 +17,17 @@ SmartCrowd Monitor is an AI-based crowd density monitoring system built with Fla
 
 ## Project Screens
 
-Add your screenshots inside the `results/` folder and update the image links below.
-
 | Dashboard | Live Monitoring |
 |---|---|
-| ![Dashboard](results/dashboard.png) | ![Live Monitoring](results/live-monitoring.png) |
+| ![Dashboard](results/Dasboard.jpeg) | ![Live Monitoring](results/live-monitoring.png) |
 
 | Uploaded Video Detection | Heatmap Result |
 |---|---|
-| ![Bounding Box Detection](results/upload-bounding-box.png) | ![Heatmap](results/heatmap.png) |
+| ![Bounding Box Detection](results/upload-bounding-box.jpeg) | ![Heatmap](results/Heatmap.jpeg) |
+
+| Critical Alert Result |
+|---|
+| ![Critical Alert](results/Alert.jpeg) |
 
 ## Results
 
